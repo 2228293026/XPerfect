@@ -151,6 +151,9 @@ namespace XPerfect
                     float finalAngle = normalizedAngle * xCompress;
                     ApplyTickAngle(tickImage, meterShape, finalAngle);
                 }
+
+                AccuracyState.LastJudgeConsumedByMeter = true;
+                AccuracyState.LastJudge = DetailedJudge.None;
             }
             catch (Exception ex)
             {

@@ -21,6 +21,7 @@ namespace XPerfect
         public static int MinusPerfectCount;
 
         public static DetailedJudge LastJudge = DetailedJudge.None;
+        public static bool LastJudgeConsumedByMeter = false;
 
         public static void Reset()
         {
@@ -29,6 +30,7 @@ namespace XPerfect
             MinusPerfectCount = 0;
 
             LastJudge = DetailedJudge.None;
+            LastJudgeConsumedByMeter = false;
         }
     }
 
@@ -130,14 +132,17 @@ namespace XPerfect
         }
     }
 
-    [HarmonyPatch(typeof(scrMisc), "GetHitMargin")]
-    public static class HitMarginPatch
+    [HarmonyPatch(typeof(scrMistakesManager), "AddHit")]
+    public static class MistakesManagerAddHitPatch
     {
-        static void Postfix(ref HitMargin __result, float hitangle, float refangle, bool isCW)
+        static void Postfix(HitMargin hit)
         {
             try
             {
                 if (!Main.Enabled)
+                    return;
+
+                if (hit != HitMargin.Perfect)
                     return;
 
                 if (scrController.instance == null || scrConductor.instance == null)
@@ -146,22 +151,9 @@ namespace XPerfect
                 if ((States)scrController.instance.stateMachine.GetState() != States.PlayerControl)
                     return;
 
-                double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
-                double conductorPitch = AccuracyMath.GetConductorPitch();
-
-                DetailedJudge detailedJudge = JudgeCalculator.GetDetailedJudge(
-                    __result,
-                    hitangle,
-                    refangle,
-                    isCW,
-                    bpmTimesSpeed,
-                    conductorPitch
-                );
-
+                DetailedJudge detailedJudge = AccuracyState.LastJudge;
                 if (detailedJudge == DetailedJudge.None)
                     return;
-
-                AccuracyState.LastJudge = detailedJudge;
 
                 switch (detailedJudge)
                 {
@@ -175,6 +167,42 @@ namespace XPerfect
                         AccuracyState.MinusPerfectCount++;
                         break;
                 }
+            }
+            catch (Exception ex)
+            {
+                UnityModManager.Logger.Log($"[XPerfect] AddHit error: {ex}");
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(scrMisc), "GetHitMargin")]
+    public static class HitMarginPatch
+    {
+        static void Postfix(ref HitMargin __result, float hitangle, float refangle, bool isCW)
+        {
+            try
+            {
+                if (!Main.Enabled) return;
+                if (scrController.instance == null || scrConductor.instance == null) return;
+                if ((States)scrController.instance.stateMachine.GetState() != States.PlayerControl) return;
+
+                double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
+                double conductorPitch = AccuracyMath.GetConductorPitch();
+
+                DetailedJudge detailedJudge = JudgeCalculator.GetDetailedJudge(
+                    __result, hitangle, refangle, isCW, bpmTimesSpeed, conductorPitch);
+
+                if (Main.Settings.XPerfectOnly)
+                {
+                    if (detailedJudge != DetailedJudge.XPerfect)
+                    {
+                        scrController.instance.FailAction();
+                        return;
+                    }
+                }
+
+                if (detailedJudge != DetailedJudge.None)
+                    AccuracyState.LastJudge = detailedJudge;
             }
             catch (Exception ex)
             {
@@ -364,7 +392,10 @@ namespace XPerfect
                 textMesh.color = finalColor;
                 meshRenderer.material.color = finalColor;
 
-                AccuracyState.LastJudge = DetailedJudge.None;
+                if (AccuracyState.LastJudgeConsumedByMeter)
+                    AccuracyState.LastJudgeConsumedByMeter = false;
+                else
+                    AccuracyState.LastJudge = DetailedJudge.None;
             }
             catch (Exception ex)
             {

@@ -45,6 +45,12 @@ namespace XPerfect
                 Settings.HideXPerfect,
                 "Hide XPerfect"
             );
+
+            Settings.XPerfectOnly = UnityEngine.GUILayout.Toggle(
+                Settings.XPerfectOnly,
+                "XPerfect Only"
+            );
+
         }
 
         private static void OnSaveGUI(UnityModManager.ModEntry modEntry)
@@ -56,6 +62,7 @@ namespace XPerfect
     public class XPerfectSettings : UnityModManager.ModSettings
     {
         public bool HideXPerfect = false;
+        public bool XPerfectOnly = false;
 
         public override void Save(UnityModManager.ModEntry modEntry)
         {
