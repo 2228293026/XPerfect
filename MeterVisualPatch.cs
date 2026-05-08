@@ -30,6 +30,12 @@ namespace XPerfect
         private static Sprite originalStraightSprite;
         private static Sprite originalCurvedSprite;
         private static bool originalSpritesCaptured = false;
+        public static void ResetCapturedSprites()
+        {
+            originalSpritesCaptured = false;
+            originalStraightSprite = null;
+            originalCurvedSprite = null;
+        }
 
         [HarmonyPatch(typeof(scrHitErrorMeter), "UpdateLayout")]
         [HarmonyPostfix]
@@ -81,6 +87,7 @@ namespace XPerfect
         }
 
         [HarmonyPatch(typeof(scrHitErrorMeter), "AddHit")]
+        [HarmonyPriority(Priority.Normal)]
         [HarmonyPostfix]
         public static void AddHitPostfix(scrHitErrorMeter __instance, float angleDiff, float marginScale = 1f)
         {
@@ -152,8 +159,8 @@ namespace XPerfect
                     ApplyTickAngle(tickImage, meterShape, finalAngle);
                 }
 
-                AccuracyState.LastJudgeConsumedByMeter = true;
-                AccuracyState.LastJudge = DetailedJudge.None;
+                AccuracyState.SetMeterConsumed(true);
+                AccuracyState.ConsumeJudge();
             }
             catch (Exception ex)
             {
@@ -280,23 +287,22 @@ namespace XPerfect
             if (loaded)
                 return;
 
-            loaded = true;
-
             try
             {
                 string modPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 string straightPath = Path.Combine(modPath, "XStraightMeter.png");
                 string curvedPath = Path.Combine(modPath, "XCurvedMeter.png");
 
-                if (File.Exists(straightPath))
-                    straightSprite = LoadSprite(straightPath);
-
-                if (File.Exists(curvedPath))
-                    curvedSprite = LoadSprite(curvedPath);
+                straightSprite = LoadSprite(straightPath);
+                curvedSprite = LoadSprite(curvedPath);
             }
             catch (Exception ex)
             {
                 UnityModManager.Logger.Log($"[MeterVisualPatch/EnsureSpritesLoaded] {ex}");
+            }
+            finally
+            {
+                loaded = straightSprite != null || curvedSprite != null;
             }
         }
 
