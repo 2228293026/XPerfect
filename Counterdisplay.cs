@@ -43,8 +43,6 @@ namespace XPerfect
 
             if (_cachedFont != null)
                 _text.font = _cachedFont;
-
-            UnityModManager.Logger.Log("[XPerfect] CounterDisplay created.");
         }
 
         public static void Destroy()
@@ -95,10 +93,8 @@ namespace XPerfect
                 _cachedFont = FindFont();
                 if (_cachedFont == null)
                 {
-                    UnityModManager.Logger.Log("[XPerfect] Font not found.");
                     return;
                 }
-                UnityModManager.Logger.Log($"[XPerfect] Font applied: '{_cachedFont.name}'");
                 if (_text != null) _text.font = _cachedFont;
             }
             catch (Exception ex)
@@ -114,7 +110,6 @@ namespace XPerfect
                 var fontTMP = RDString.fontData.fontTMP;
                 if (fontTMP != null)
                 {
-                    UnityModManager.Logger.Log($"[XPerfect] Font from RDString: '{fontTMP.name}'");
                     return fontTMP;
                 }
             }
@@ -128,7 +123,6 @@ namespace XPerfect
                 if (t == null || t.font == null) continue;
                 if (ReferenceEquals(t, _text)) continue;
                 if (t.font.name.IndexOf("Liberation", StringComparison.OrdinalIgnoreCase) >= 0) continue;
-                UnityModManager.Logger.Log($"[XPerfect] Font fallback: '{t.font.name}'");
                 return t.font;
             }
             return null;
@@ -172,7 +166,6 @@ namespace XPerfect
 
         private static string GetSpace()
         {
-            // [버그4 수정] CounterSpacing은 int이므로 float 변환 없이 정수 곱셈으로 처리
             int s = Main.Settings.CounterSpacing * 2;
             if (s != _lastSpacing)
             {
@@ -225,7 +218,6 @@ namespace XPerfect
         private IEnumerator DelayedRefresh()
         {
             yield return null;
-            MeterVisualPatch.ResetCapturedSprites();
             CounterDisplay.ApplyFont();
             CounterDisplay.Refresh();
         }

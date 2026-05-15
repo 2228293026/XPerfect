@@ -65,12 +65,8 @@ namespace XPerfect
 
         public static float GetSignedDeltaDeg(float hitAngle, float refAngle, bool isCW)
         {
-            float deltaDeg = Mathf.DeltaAngle(
-                refAngle * Mathf.Rad2Deg,
-                hitAngle * Mathf.Rad2Deg
-            );
-
-            return isCW ? deltaDeg : -deltaDeg;
+            float delta = (hitAngle - refAngle) * Mathf.Rad2Deg;
+            return isCW ? delta : -delta;
         }
 
         public static double GetBpmTimesSpeed()

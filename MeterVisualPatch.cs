@@ -30,12 +30,6 @@ namespace XPerfect
         private static Sprite originalStraightSprite;
         private static Sprite originalCurvedSprite;
         private static bool originalSpritesCaptured = false;
-        public static void ResetCapturedSprites()
-        {
-            originalSpritesCaptured = false;
-            originalStraightSprite = null;
-            originalCurvedSprite = null;
-        }
 
         [HarmonyPatch(typeof(scrHitErrorMeter), "UpdateLayout")]
         [HarmonyPostfix]
@@ -209,24 +203,23 @@ namespace XPerfect
 
         private static void CaptureOriginalSprites(scrHitErrorMeter meter)
         {
-            if (originalSpritesCaptured || meter == null)
-                return;
+            if (meter == null) return;
 
             if (meter.straightMeter != null)
             {
                 Image image = meter.straightMeter.GetComponent<Image>();
-                if (image != null)
+                if (image != null && image.sprite != straightSprite)
                     originalStraightSprite = image.sprite;
             }
 
             if (meter.curvedMeter != null)
             {
                 Image image = meter.curvedMeter.GetComponent<Image>();
-                if (image != null)
+                if (image != null && image.sprite != curvedSprite)
                     originalCurvedSprite = image.sprite;
             }
 
-            originalSpritesCaptured = true;
+            originalSpritesCaptured = originalStraightSprite != null || originalCurvedSprite != null;
         }
 
         private static void RestoreOriginalSprites(scrHitErrorMeter meter)
@@ -332,12 +325,16 @@ namespace XPerfect
 
                 foreach (var meter in meters)
                 {
-                    if (meter == null)
-                        continue;
-
+                    if (meter == null) continue;
                     try
                     {
-                        ApplyCurrentVisualState(meter);
+                        if (!Main.Enabled)
+                        {
+                            CaptureOriginalSprites(meter);
+                            RestoreOriginalSprites(meter);
+                        }
+                        else
+                            ApplyCurrentVisualState(meter);
                     }
                     catch (Exception ex)
                     {
