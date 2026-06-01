@@ -21,16 +21,22 @@ namespace XPerfect
         public static int MinusPerfectCount { get; private set; }
 
         public static DetailedJudge LastJudge { get; private set; } = DetailedJudge.None;
+        public static DetailedJudge LastJudgeForText { get; private set; } = DetailedJudge.None;
         public static bool LastJudgeConsumedByMeter { get; private set; } = false;
 
         public static void RecordJudge(DetailedJudge judge)
         {
             LastJudge = judge;
+            LastJudgeForText = judge;
         }
 
         public static void ConsumeJudge()
         {
             LastJudge = DetailedJudge.None;
+        }
+        public static void ConsumeJudgeForText()
+        {
+            LastJudgeForText = DetailedJudge.None;
         }
 
         public static void SetMeterConsumed(bool value)
@@ -54,6 +60,7 @@ namespace XPerfect
             XPerfectCount = 0;
             MinusPerfectCount = 0;
             LastJudge = DetailedJudge.None;
+            LastJudgeForText = DetailedJudge.None;
             LastJudgeConsumedByMeter = false;
         }
     }
@@ -74,7 +81,7 @@ namespace XPerfect
             if (scrConductor.instance == null || scrController.instance == null)
                 return 0.0;
 
-            return scrConductor.instance.bpm * scrController.instance.speed;
+            return scrConductor.instance.bpm * GCS.currentSpeedTrial;
         }
 
         public static double GetConductorPitch()
@@ -156,7 +163,7 @@ namespace XPerfect
     [HarmonyPriority(Priority.High)]
     public static class HitMarginPatch
     {
-        static void Postfix(ref HitMargin __result, float hitangle, float refangle, bool isCW)
+        static void Postfix(ref HitMargin __result, float hitangle, float refangle, bool isCW, float bpmTimesSpeed, float conductorPitch)
         {
             try
             {
@@ -164,11 +171,11 @@ namespace XPerfect
                 if (scrController.instance == null || scrConductor.instance == null) return;
                 if ((States)scrController.instance.stateMachine.GetState() != States.PlayerControl) return;
 
-                double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
-                double conductorPitch = AccuracyMath.GetConductorPitch();
+                double bpmTimesSpeed2 = (double)bpmTimesSpeed;
+                double conductorPitch2 = (double)conductorPitch;
 
                 DetailedJudge detailedJudge = JudgeCalculator.GetDetailedJudge(
-                    __result, hitangle, refangle, isCW, bpmTimesSpeed, conductorPitch);
+                    __result, hitangle, refangle, isCW, bpmTimesSpeed2, conductorPitch2);
 
                 if (detailedJudge != DetailedJudge.None)
                     AccuracyState.RecordJudge(detailedJudge);
@@ -228,11 +235,13 @@ namespace XPerfect
             try
             {
                 if (!Main.Enabled || !Main.Settings.XPerfectOnly) return;
-
                 if (!IsValidHitPatch.ShouldFailPlayer) return;
                 IsValidHitPatch.ShouldFailPlayer = false;
 
-                scrController.instance?.FailAction(true);
+                var ctrl = scrController.instance;
+                if (ctrl == null) return;
+
+                ctrl.playerOne.Die(false, false, "", true);
             }
             catch (Exception ex)
             {
@@ -241,7 +250,7 @@ namespace XPerfect
         }
     }
 
-    [HarmonyPatch(typeof(scrMistakesManager), "AddHit")]
+    [HarmonyPatch(typeof(scrMarginTracker), "AddHit")]
     [HarmonyPriority(Priority.Normal)]
     public static class MistakesManagerAddHitPatch
     {
@@ -331,13 +340,10 @@ namespace XPerfect
             {
                 if (__instance == null) return;
 
-                var textMesh = __instance.GetComponent<TextMesh>();
-                if (textMesh == null) return;
+                var tmp = __instance.text;
+                if (tmp == null) return;
 
-                var meshRenderer = __instance.GetComponent<MeshRenderer>();
-                if (meshRenderer == null) return;
-
-                string originalText = textMesh.text;
+                string originalText = tmp.text;
 
                 if (__instance.hitMargin == HitMargin.Perfect)
                     RememberPerfectBaseText(originalText);
@@ -353,13 +359,12 @@ namespace XPerfect
                     if (string.IsNullOrWhiteSpace(baseText))
                         baseText = GetFallbackBaseText();
 
-                    textMesh.text = baseText;
-                    textMesh.color = perfectColor;
-                    meshRenderer.material.color = perfectColor;
+                    tmp.text = baseText;
+                    tmp.color = perfectColor;
                     return;
                 }
 
-                DetailedJudge judge = AccuracyState.LastJudge;
+                DetailedJudge judge = AccuracyState.LastJudgeForText;
                 if (judge == DetailedJudge.None)
                     return;
 
@@ -367,15 +372,21 @@ namespace XPerfect
 
                 if (judge == DetailedJudge.XPerfect && Main.Settings.HideXPerfect)
                 {
-                    textMesh.text = "\u00A0";
+                    tmp.text = "\u00A0";
+                    return;
+                }
+
+                if ((judge == DetailedJudge.PlusPerfect || judge == DetailedJudge.MinusPerfect)
+                    && Main.Settings.HidePlusMinus)
+                {
+                    tmp.text = "\u00A0";
                     return;
                 }
 
                 Color finalColor = judge == DetailedJudge.XPerfect ? xPerfectColor : perfectColor;
 
-                textMesh.text = BuildDetailedText(judge, originalText);
-                textMesh.color = finalColor;
-                meshRenderer.material.color = finalColor;
+                tmp.text = BuildDetailedText(judge, originalText);
+                tmp.color = finalColor;
             }
             catch (Exception ex)
             {
@@ -385,8 +396,7 @@ namespace XPerfect
             {
                 if (__instance != null && __instance.hitMargin == HitMargin.Perfect)
                 {
-                    if (AccuracyState.LastJudgeConsumedByMeter)
-                        AccuracyState.SetMeterConsumed(false);
+                    AccuracyState.ConsumeJudgeForText();
                 }
             }
         }
@@ -426,9 +436,9 @@ namespace XPerfect
                     __instance.txtCongrats.text = "X" + shown;
             }
 
-            if (__instance.txtResults == null) return;
-
-            string text = __instance.txtResults.text;
+            var detailedResults = __instance.detailedResults;
+            if (detailedResults == null) return;
+            string text = detailedResults.textComponent.text;
             if (string.IsNullOrEmpty(text)) return;
 
             string detail =
@@ -447,11 +457,11 @@ namespace XPerfect
             if (tokens.Length >= 2)
             {
                 tokens[1] = tokens[1] + detail;
-                __instance.txtResults.text = string.Join(separator, tokens) + rest;
+                detailedResults.textComponent.text = string.Join(separator, tokens) + rest;
             }
             else
             {
-                __instance.txtResults.text = text + detail;
+                detailedResults.textComponent.text = text + detail;
             }
         }
     }

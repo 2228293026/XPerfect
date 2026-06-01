@@ -59,6 +59,7 @@ namespace XPerfect
         private static void OnGUI(UnityModManager.ModEntry modEntry)
         {
             Settings.HideXPerfect = GUILayout.Toggle(Settings.HideXPerfect, "Hide XPerfect");
+            Settings.HidePlusMinus = GUILayout.Toggle(Settings.HidePlusMinus, "Hide +Perfect / -Perfect");
             Settings.XPerfectOnly = GUILayout.Toggle(Settings.XPerfectOnly, "XPerfect Only");
             bool prevShow = Settings.ShowCounter;
             Settings.ShowCounter = GUILayout.Toggle(Settings.ShowCounter, "Show Counter");
@@ -144,6 +145,7 @@ namespace XPerfect
     public class XPerfectSettings : UnityModManager.ModSettings
     {
         public bool HideXPerfect = false;
+        public bool HidePlusMinus = false;
         public bool XPerfectOnly = false;
 
         public bool ShowCounter = false;

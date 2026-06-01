@@ -83,7 +83,7 @@ namespace XPerfect
         [HarmonyPatch(typeof(scrHitErrorMeter), "AddHit")]
         [HarmonyPriority(Priority.Normal)]
         [HarmonyPostfix]
-        public static void AddHitPostfix(scrHitErrorMeter __instance, float angleDiff, float marginScale = 1f)
+        public static void AddHitPostfix(scrHitErrorMeter __instance, float angleDiff, float marginScale = 1f, scrPlanet planet = null)
         {
             try
             {
@@ -297,6 +297,7 @@ namespace XPerfect
             {
                 loaded = straightSprite != null || curvedSprite != null;
             }
+
         }
 
         private static Sprite LoadSprite(string filePath)
@@ -304,7 +305,26 @@ namespace XPerfect
             byte[] bytes = File.ReadAllBytes(filePath);
             Texture2D texture = new Texture2D(2, 2, TextureFormat.ARGB32, false);
 
-            if (!texture.LoadImage(bytes))
+            var imageConversionType = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule");
+            if (imageConversionType == null)
+            {
+                UnityModManager.Logger.Log("[MeterVisualPatch] ImageConversion type not found");
+                return null;
+            }
+            var loadImage = imageConversionType.GetMethod(
+                "LoadImage",
+                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public,
+                null,
+                new System.Type[] { typeof(Texture2D), typeof(byte[]) },
+                null
+            );
+            if (loadImage == null)
+            {
+                UnityModManager.Logger.Log("[MeterVisualPatch] LoadImage method not found");
+                return null;
+            }
+            bool success = (bool)loadImage.Invoke(null, new object[] { texture, bytes });
+            if (!success)
                 return null;
 
             texture.wrapMode = TextureWrapMode.Clamp;

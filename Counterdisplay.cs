@@ -75,12 +75,7 @@ namespace XPerfect
 
             var mat = new Material(tmp.fontSharedMaterial);
             mat.DisableKeyword(TMPro.ShaderUtilities.Keyword_Outline);
-            mat.EnableKeyword(TMPro.ShaderUtilities.Keyword_Underlay);
-            mat.SetFloat(TMPro.ShaderUtilities.ID_UnderlayOffsetX, 0.5f);
-            mat.SetFloat(TMPro.ShaderUtilities.ID_UnderlayOffsetY, -0.5f);
-            mat.SetFloat(TMPro.ShaderUtilities.ID_UnderlaySoftness, 0.5f);
-            mat.SetFloat(TMPro.ShaderUtilities.ID_UnderlayDilate, 0f);
-            mat.SetColor(TMPro.ShaderUtilities.ID_UnderlayColor, new Color(0f, 0f, 0f, 1f));
+            mat.DisableKeyword(TMPro.ShaderUtilities.Keyword_Underlay);
             tmp.fontSharedMaterial = mat;
 
             return tmp;
@@ -223,7 +218,7 @@ namespace XPerfect
         }
     }
 
-    [HarmonyPatch(typeof(scrMistakesManager), "AddHit")]
+    [HarmonyPatch(typeof(scrMarginTracker), "AddHit")]
     public static class CounterRefreshOnHitPatch
     {
         static void Postfix()
