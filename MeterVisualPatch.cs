@@ -83,7 +83,7 @@ namespace XPerfect
         [HarmonyPatch(typeof(scrHitErrorMeter), "AddHit")]
         [HarmonyPriority(Priority.Normal)]
         [HarmonyPostfix]
-        public static void AddHitPostfix(scrHitErrorMeter __instance, float angleDiff, float marginScale = 1f, scrPlanet planet = null)
+        public static void AddHitPostfix(scrHitErrorMeter __instance, float angleDiff, float marginScale = 1f, scrPlanet planet = null, scrFloor hitFloor = null)
         {
             try
             {
@@ -145,12 +145,13 @@ namespace XPerfect
                     return;
                 }
 
-                const float xCompress = 0.75f;
-
                 if (AccuracyState.LastJudge == DetailedJudge.XPerfect)
                 {
-                    float finalAngle = normalizedAngle * xCompress;
-                    ApplyTickAngle(tickImage, meterShape, finalAngle);
+                    double xpBoundMeter = AccuracyMath.GetMeterXPerfectBoundaryDeg(
+                        bpmTimesSpeed, conductorPitch, marginScale);
+                    float clamped = Mathf.Clamp(normalizedAngle,
+                        -(float)xpBoundMeter * 0.8f, (float)xpBoundMeter * 0.8f);
+                    ApplyTickAngle(tickImage, meterShape, clamped);
                 }
 
                 AccuracyState.SetMeterConsumed(true);
@@ -173,19 +174,7 @@ namespace XPerfect
                     if (!Main.Enabled)
                         return true;
 
-                    if (scrController.instance == null || scrConductor.instance == null)
-                        return true;
-
-                    double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
-                    double conductorPitch = AccuracyMath.GetConductorPitch();
-
-                    double xPerfectBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
-                        bpmTimesSpeed,
-                        conductorPitch,
-                        marginScale
-                    );
-
-                    if (Math.Abs(angle) <= xPerfectBoundary)
+                    if (AccuracyState.LastJudge == DetailedJudge.XPerfect)
                     {
                         __result = new Color(0.3f, 0.8f, 1f, 1f);
                         return false;
