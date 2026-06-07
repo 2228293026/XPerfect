@@ -173,7 +173,7 @@ namespace XPerfect
                     if (!Main.Enabled)
                         return true;
 
-                   if (scrController.instance == null || scrConductor.instance == null)
+                    if (scrController.instance == null || scrConductor.instance == null)
                         return true;
 
                     double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
