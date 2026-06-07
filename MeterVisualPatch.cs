@@ -145,13 +145,12 @@ namespace XPerfect
                     return;
                 }
 
+                const float xCompress = 0.75f;
+
                 if (AccuracyState.LastJudge == DetailedJudge.XPerfect)
                 {
-                    double xpBoundMeter = AccuracyMath.GetMeterXPerfectBoundaryDeg(
-                        bpmTimesSpeed, conductorPitch, marginScale);
-                    float clamped = Mathf.Clamp(normalizedAngle,
-                        -(float)xpBoundMeter * 0.8f, (float)xpBoundMeter * 0.8f);
-                    ApplyTickAngle(tickImage, meterShape, clamped);
+                    float finalAngle = normalizedAngle * xCompress;
+                    ApplyTickAngle(tickImage, meterShape, finalAngle);
                 }
 
                 AccuracyState.SetMeterConsumed(true);
@@ -167,14 +166,26 @@ namespace XPerfect
         public static class MeterTickColorPatch
         {
             [HarmonyPrefix]
-            public static bool Prefix(ref Color __result, float angle, float marginScale = 1f)
+            public static bool Prefix(ref Color __result, float angle, float marginScale = 1f, scrFloor hitFloor = null)
             {
                 try
                 {
                     if (!Main.Enabled)
                         return true;
 
-                    if (AccuracyState.LastJudge == DetailedJudge.XPerfect)
+                   if (scrController.instance == null || scrConductor.instance == null)
+                        return true;
+
+                    double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
+                    double conductorPitch = AccuracyMath.GetConductorPitch();
+
+                    double xPerfectBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
+                        bpmTimesSpeed,
+                        conductorPitch,
+                        marginScale
+                    );
+
+                    if (Math.Abs(angle) <= xPerfectBoundary)
                     {
                         __result = new Color(0.3f, 0.8f, 1f, 1f);
                         return false;
