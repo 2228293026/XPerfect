@@ -150,36 +150,28 @@ namespace XPerfect
             [HarmonyPrefix]
             public static bool Prefix(ref Color __result, float angle, float marginScale = 1f, scrFloor hitFloor = null)
             {
-                try
-                {
-                    if (!Main.Enabled)
-                        return true;
-
-                    if (scrController.instance == null || scrConductor.instance == null)
-                        return true;
-
-                    double bpmTimesSpeed = scrConductor.instance.bpm * ((hitFloor ?? scrController.instance.playerOne?.currFloor?.prevfloor)?.speed ?? 1.0);
-                    double conductorPitch = scrConductor.instance.song.pitch;
-
-                    double xPerfectBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
-                        bpmTimesSpeed,
-                        conductorPitch,
-                        marginScale
-                    );
-
-                    if (Math.Abs(angle) <= xPerfectBoundary)
-                    {
-                        __result = new Color(0.3f, 0.8f, 1f, 1f);
-                        return false;
-                    }
-
+                if (!Main.Enabled)
                     return true;
-                }
-                catch (Exception ex)
-                {
-                    UnityModManager.Logger.Log($"[MeterTickColorPatch] {ex}");
+
+                if (scrController.instance == null || scrConductor.instance == null)
                     return true;
+
+                double bpmTimesSpeed = scrConductor.instance.bpm * ((hitFloor ?? scrController.instance.playerOne?.currFloor?.prevfloor)?.speed ?? 1.0);
+                double conductorPitch = scrConductor.instance.song.pitch;
+
+                double xPerfectBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
+                    bpmTimesSpeed,
+                    conductorPitch,
+                    marginScale
+                );
+
+                if (Math.Abs(angle) <= xPerfectBoundary)
+                {
+                    __result = new Color(0.3f, 0.8f, 1f, 1f);
+                    return false;
                 }
+
+                return true;
             }
         }
 
