@@ -69,22 +69,6 @@ namespace XPerfect
             return isCW ? delta : -delta;
         }
 
-        public static double GetBpmTimesSpeed()
-        {
-            if (scrConductor.instance == null || scrController.instance == null)
-                return 0.0;
-
-            return scrConductor.instance.bpm * GCS.currentSpeedTrial * ADOBase.controller.playerOne.planetarySystem.speed;
-        }
-
-        public static double GetConductorPitch()
-        {
-            if (scrConductor.instance == null || scrConductor.instance.song == null)
-                return 1.0;
-
-            return scrConductor.instance.song.pitch;
-        }
-
         public static double GetActualXPerfectBoundaryDeg(double bpmTimesSpeed, double conductorPitch)
         {
             double xPerfectMinTimeDeg =
@@ -138,11 +122,11 @@ namespace XPerfect
             double bpmTimesSpeed,
             double conductorPitch)
         {
-            if (result != HitMargin.Perfect)
-                return DetailedJudge.None;
-
             if (RDC.auto)
                 return DetailedJudge.XPerfect;
+
+            if (result != HitMargin.Perfect)
+                return DetailedJudge.None;
 
             float signedDeltaDeg = AccuracyMath.GetSignedDeltaDeg(hitAngle, refAngle, isCW);
             float absDeltaDeg = Mathf.Abs(signedDeltaDeg);
@@ -191,6 +175,8 @@ namespace XPerfect
         {
             if (!Main.Enabled || !Main.Settings.XPerfectOnly) return;
             if (scrController.instance == null || !scrController.instance.gameworld) return;
+
+            if (RDC.auto) return;
 
             bool shouldBlock = false;
 

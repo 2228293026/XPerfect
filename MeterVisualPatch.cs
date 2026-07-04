@@ -113,8 +113,9 @@ namespace XPerfect
 
             float normalizedAngle = GetMeterAngleFromTick(tickImage, meterShape);
 
-            double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
-            double conductorPitch = AccuracyMath.GetConductorPitch();
+            float? floorSpeedAdd = (hitFloor ?? planet?.player?.currFloor?.prevfloor)?.speed;
+            double bpmTimesSpeed = scrConductor.instance.bpm * (floorSpeedAdd ?? 1.0);
+            double conductorPitch = scrConductor.instance.song.pitch;
 
             double pureBoundaryDeg = scrMisc.GetAdjustedAngleBoundaryInDeg(
                 HitMarginGeneral.Pure, bpmTimesSpeed, conductorPitch, marginScale);
@@ -157,8 +158,8 @@ namespace XPerfect
                     if (scrController.instance == null || scrConductor.instance == null)
                         return true;
 
-                    double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
-                    double conductorPitch = AccuracyMath.GetConductorPitch();
+                    double bpmTimesSpeed = scrConductor.instance.bpm * ((hitFloor ?? scrController.instance.playerOne?.currFloor?.prevfloor)?.speed ?? 1.0);
+                    double conductorPitch = scrConductor.instance.song.pitch;
 
                     double xPerfectBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
                         bpmTimesSpeed,
