@@ -11,25 +11,23 @@ namespace XPerfect
     [HarmonyPatch]
     public static class MeterVisualPatch
     {
-        private static readonly FieldInfo CachedTickImagesField =
-            AccessTools.Field(typeof(scrHitErrorMeter), "cachedTickImages");
+        private static readonly AccessTools.FieldRef<scrHitErrorMeter, Image[]> GetCachedTickImages =
+            AccessTools.FieldRefAccess<scrHitErrorMeter, Image[]>("cachedTickImages");
 
-        private static readonly FieldInfo TickIndexField =
-            AccessTools.Field(typeof(scrHitErrorMeter), "tickIndex");
+        private static readonly AccessTools.FieldRef<scrHitErrorMeter, int> GetTickIndex =
+            AccessTools.FieldRefAccess<scrHitErrorMeter, int>("tickIndex");
 
-        private static readonly FieldInfo TickCacheSizeField =
-            AccessTools.Field(typeof(scrHitErrorMeter), "tickCacheSize");
+        private static readonly AccessTools.FieldRef<scrHitErrorMeter, int> GetTickCacheSize =
+            AccessTools.FieldRefAccess<scrHitErrorMeter, int>("tickCacheSize");
 
-        private static readonly FieldInfo MeterShapeField =
-            AccessTools.Field(typeof(scrHitErrorMeter), "meterShape");
+        private static readonly AccessTools.FieldRef<scrHitErrorMeter, ErrorMeterShape> GetMeterShape =
+            AccessTools.FieldRefAccess<scrHitErrorMeter, ErrorMeterShape>("meterShape");
 
         private static Sprite straightSprite;
         private static Sprite curvedSprite;
-        private static bool loaded = false;
 
         private static Sprite originalStraightSprite;
         private static Sprite originalCurvedSprite;
-        private static bool originalSpritesCaptured = false;
 
         [HarmonyPatch(typeof(scrHitErrorMeter), "UpdateLayout")]
         [HarmonyPostfix]
@@ -96,13 +94,13 @@ namespace XPerfect
                 if (scrConductor.instance == null || scrController.instance == null)
                     return;
 
-                Image[] cachedTickImages = CachedTickImagesField.GetValue(__instance) as Image[];
+                Image[] cachedTickImages = GetCachedTickImages(__instance);
                 if (cachedTickImages == null || cachedTickImages.Length == 0)
                     return;
 
-                int tickIndex = (int)TickIndexField.GetValue(__instance);
-                int tickCacheSize = (int)TickCacheSizeField.GetValue(__instance);
-                ErrorMeterShape meterShape = (ErrorMeterShape)MeterShapeField.GetValue(__instance);
+                int tickIndex = GetTickIndex(__instance);
+                int tickCacheSize = GetTickCacheSize(__instance);
+                ErrorMeterShape meterShape = GetMeterShape(__instance);
 
                 int justAddedTickIndex = tickIndex - 1;
                 if (justAddedTickIndex < 0)
@@ -147,14 +145,14 @@ namespace XPerfect
 
                 const float xCompress = 0.75f;
 
-                if (AccuracyState.LastJudge == DetailedJudge.XPerfect)
+                double xPerfectMeterBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
+                    bpmTimesSpeed, conductorPitch, countedBoundaryDeg);
+
+                if (Math.Abs(normalizedAngle) <= xPerfectMeterBoundary)
                 {
                     float finalAngle = normalizedAngle * xCompress;
                     ApplyTickAngle(tickImage, meterShape, finalAngle);
                 }
-
-                AccuracyState.SetMeterConsumed(true);
-                AccuracyState.ConsumeJudge();
             }
             catch (Exception ex)
             {
@@ -218,8 +216,6 @@ namespace XPerfect
                 if (image != null && image.sprite != curvedSprite)
                     originalCurvedSprite = image.sprite;
             }
-
-            originalSpritesCaptured = originalStraightSprite != null || originalCurvedSprite != null;
         }
 
         private static void RestoreOriginalSprites(scrHitErrorMeter meter)
@@ -277,27 +273,26 @@ namespace XPerfect
 
         private static void EnsureSpritesLoaded()
         {
-            if (loaded)
-                return;
-
             try
             {
                 string modPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                string straightPath = Path.Combine(modPath, "XStraightMeter.png");
-                string curvedPath = Path.Combine(modPath, "XCurvedMeter.png");
 
-                straightSprite = LoadSprite(straightPath);
-                curvedSprite = LoadSprite(curvedPath);
+                if (straightSprite == null)
+                {
+                    string straightPath = Path.Combine(modPath, "XStraightMeter.png");
+                    straightSprite = LoadSprite(straightPath);
+                }
+
+                if (curvedSprite == null)
+                {
+                    string curvedPath = Path.Combine(modPath, "XCurvedMeter.png");
+                    curvedSprite = LoadSprite(curvedPath);
+                }
             }
             catch (Exception ex)
             {
                 UnityModManager.Logger.Log($"[MeterVisualPatch/EnsureSpritesLoaded] {ex}");
             }
-            finally
-            {
-                loaded = straightSprite != null || curvedSprite != null;
-            }
-
         }
 
         private static Sprite LoadSprite(string filePath)
@@ -339,7 +334,7 @@ namespace XPerfect
         {
             try
             {
-                scrHitErrorMeter[] meters = UnityEngine.Object.FindObjectsOfType<scrHitErrorMeter>(true);
+                scrHitErrorMeter[] meters = UnityEngine.Object.FindObjectsByType<scrHitErrorMeter>(FindObjectsSortMode.None);
                 if (meters == null || meters.Length == 0)
                     return;
 

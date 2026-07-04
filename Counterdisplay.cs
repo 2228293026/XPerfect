@@ -13,8 +13,14 @@ namespace XPerfect
         private static readonly Color32 PlusMinusColor = new Color32(96, 255, 78, 255);
         private static readonly Color32 XColor = new Color32(77, 204, 255, 255);
 
+        private static readonly string PlusMinusHex = ColorUtility.ToHtmlStringRGB(PlusMinusColor);
+        private static readonly string XColorHex = ColorUtility.ToHtmlStringRGB(XColor);
+
         private static string _cachedSpace = "";
         private static int _lastSpacing = -1;
+
+        private static Vector2 _lastAppliedPos = Vector2.zero;
+        private static int _lastAppliedFontSize = -1;
 
         private static GameObject _canvasObj;
         private static TMP_Text _text;
@@ -35,8 +41,8 @@ namespace XPerfect
             var scaler = _canvasObj.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(
-                Screen.currentResolution.width,
-                Screen.currentResolution.height
+                Screen.width,
+                Screen.height
             );
 
             _text = CreateLabel(_canvasObj);
@@ -113,7 +119,7 @@ namespace XPerfect
                 UnityModManager.Logger.Log($"[XPerfect] RDString.fontData error: {ex}");
             }
 
-            foreach (var t in UnityEngine.Object.FindObjectsOfType<TMP_Text>())
+            foreach (var t in UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsSortMode.None))
             {
                 if (t == null || t.font == null) continue;
                 if (ReferenceEquals(t, _text)) continue;
@@ -127,11 +133,18 @@ namespace XPerfect
         {
             if (_text == null) return;
 
-            _text.rectTransform.anchoredPosition = new Vector2(
-                Main.Settings.CounterX,
-                Main.Settings.CounterY
-            );
-            _text.fontSize = Main.Settings.CounterFontSize;
+            Vector2 pos = new Vector2(Main.Settings.CounterX, Main.Settings.CounterY);
+            if (pos != _lastAppliedPos)
+            {
+                _text.rectTransform.anchoredPosition = pos;
+                _lastAppliedPos = pos;
+            }
+
+            if (Main.Settings.CounterFontSize != _lastAppliedFontSize)
+            {
+                _text.fontSize = Main.Settings.CounterFontSize;
+                _lastAppliedFontSize = Main.Settings.CounterFontSize;
+            }
         }
 
         public static void Refresh()
@@ -150,11 +163,11 @@ namespace XPerfect
             string space = GetSpace();
 
             _text.text =
-                $"{ColorText(AccuracyState.PlusPerfectCount.ToString(), PlusMinusColor)}" +
+                $"{ColorText(AccuracyState.PlusPerfectCount.ToString(), PlusMinusHex)}" +
                 $"{space}" +
-                $"{ColorText(AccuracyState.XPerfectCount.ToString(), XColor)}" +
+                $"{ColorText(AccuracyState.XPerfectCount.ToString(), XColorHex)}" +
                 $"{space}" +
-                $"{ColorText(AccuracyState.MinusPerfectCount.ToString(), PlusMinusColor)}";
+                $"{ColorText(AccuracyState.MinusPerfectCount.ToString(), PlusMinusHex)}";
 
             ApplySettings();
         }
@@ -170,9 +183,9 @@ namespace XPerfect
             return _cachedSpace;
         }
 
-        private static string ColorText(string text, Color32 color)
+        private static string ColorText(string text, string colorHex)
         {
-            return $"<color=#{ColorUtility.ToHtmlStringRGB(color)}>{text}</color>";
+            return $"<color=#{colorHex}>{text}</color>";
         }
     }
 

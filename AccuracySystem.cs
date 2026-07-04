@@ -22,7 +22,6 @@ namespace XPerfect
 
         public static DetailedJudge LastJudge { get; private set; } = DetailedJudge.None;
         public static DetailedJudge LastJudgeForText { get; private set; } = DetailedJudge.None;
-        public static bool LastJudgeConsumedByMeter { get; private set; } = false;
 
         public static void RecordJudge(DetailedJudge judge)
         {
@@ -37,11 +36,6 @@ namespace XPerfect
         public static void ConsumeJudgeForText()
         {
             LastJudgeForText = DetailedJudge.None;
-        }
-
-        public static void SetMeterConsumed(bool value)
-        {
-            LastJudgeConsumedByMeter = value;
         }
 
         public static void IncrementCount(DetailedJudge judge)
@@ -61,7 +55,6 @@ namespace XPerfect
             MinusPerfectCount = 0;
             LastJudge = DetailedJudge.None;
             LastJudgeForText = DetailedJudge.None;
-            LastJudgeConsumedByMeter = false;
         }
     }
 
@@ -120,6 +113,14 @@ namespace XPerfect
                 marginScale
             );
 
+            return GetMeterXPerfectBoundaryDeg(bpmTimesSpeed, conductorPitch, countedBoundaryDeg);
+        }
+
+        public static double GetMeterXPerfectBoundaryDeg(
+            double bpmTimesSpeed,
+            double conductorPitch,
+            double countedBoundaryDeg)
+        {
             double actualXPerfectBoundaryDeg = GetActualXPerfectBoundaryDeg(bpmTimesSpeed, conductorPitch);
             double meterScale = GetMeterScale(countedBoundaryDeg);
 
@@ -234,9 +235,10 @@ namespace XPerfect
         {
             try
             {
-                if (!Main.Enabled || !Main.Settings.XPerfectOnly) return;
                 if (!IsValidHitPatch.ShouldFailPlayer) return;
                 IsValidHitPatch.ShouldFailPlayer = false;
+
+                if (!Main.Enabled || !Main.Settings.XPerfectOnly) return;
 
                 var ctrl = scrController.instance;
                 if (ctrl == null) return;
@@ -267,9 +269,7 @@ namespace XPerfect
                 if (detailedJudge == DetailedJudge.None) return;
 
                 AccuracyState.IncrementCount(detailedJudge);
-
-                if (!AccuracyState.LastJudgeConsumedByMeter)
-                    AccuracyState.ConsumeJudge();
+                AccuracyState.ConsumeJudge();
             }
             catch (Exception ex)
             {
