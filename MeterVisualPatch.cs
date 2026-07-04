@@ -83,80 +83,63 @@ namespace XPerfect
         [HarmonyPostfix]
         public static void AddHitPostfix(scrHitErrorMeter __instance, float angleDiff, float marginScale = 1f, scrPlanet planet = null, scrFloor hitFloor = null)
         {
-            try
+            if (!Main.Enabled)
+                return;
+
+            if (__instance == null)
+                return;
+
+            if (scrConductor.instance == null || scrController.instance == null)
+                return;
+
+            Image[] cachedTickImages = GetCachedTickImages(__instance);
+            if (cachedTickImages == null || cachedTickImages.Length == 0)
+                return;
+
+            int tickIndex = GetTickIndex(__instance);
+            int tickCacheSize = GetTickCacheSize(__instance);
+            ErrorMeterShape meterShape = GetMeterShape(__instance);
+
+            int justAddedTickIndex = tickIndex - 1;
+            if (justAddedTickIndex < 0)
+                justAddedTickIndex = tickCacheSize - 1;
+
+            if (justAddedTickIndex < 0 || justAddedTickIndex >= cachedTickImages.Length)
+                return;
+
+            Image tickImage = cachedTickImages[justAddedTickIndex];
+            if (tickImage == null)
+                return;
+
+            float normalizedAngle = GetMeterAngleFromTick(tickImage, meterShape);
+
+            double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
+            double conductorPitch = AccuracyMath.GetConductorPitch();
+
+            double pureBoundaryDeg = scrMisc.GetAdjustedAngleBoundaryInDeg(
+                HitMarginGeneral.Pure, bpmTimesSpeed, conductorPitch, marginScale);
+
+            double countedBoundaryDeg = scrMisc.GetAdjustedAngleBoundaryInDeg(
+                HitMarginGeneral.Counted, bpmTimesSpeed, conductorPitch, marginScale);
+
+            if (countedBoundaryDeg <= 0.0)
+                return;
+
+            double scale = 60.0 / countedBoundaryDeg;
+            double normalizedPureBoundary = pureBoundaryDeg * scale;
+
+            if (normalizedAngle < -normalizedPureBoundary || normalizedAngle > normalizedPureBoundary)
+                return;
+
+            const float xCompress = 0.75f;
+
+            double xPerfectMeterBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
+                bpmTimesSpeed, conductorPitch, countedBoundaryDeg);
+
+            if (Math.Abs(normalizedAngle) <= xPerfectMeterBoundary)
             {
-                if (!Main.Enabled)
-                    return;
-
-                if (__instance == null)
-                    return;
-
-                if (scrConductor.instance == null || scrController.instance == null)
-                    return;
-
-                Image[] cachedTickImages = GetCachedTickImages(__instance);
-                if (cachedTickImages == null || cachedTickImages.Length == 0)
-                    return;
-
-                int tickIndex = GetTickIndex(__instance);
-                int tickCacheSize = GetTickCacheSize(__instance);
-                ErrorMeterShape meterShape = GetMeterShape(__instance);
-
-                int justAddedTickIndex = tickIndex - 1;
-                if (justAddedTickIndex < 0)
-                    justAddedTickIndex = tickCacheSize - 1;
-
-                if (justAddedTickIndex < 0 || justAddedTickIndex >= cachedTickImages.Length)
-                    return;
-
-                Image tickImage = cachedTickImages[justAddedTickIndex];
-                if (tickImage == null)
-                    return;
-
-                float normalizedAngle = GetMeterAngleFromTick(tickImage, meterShape);
-
-                double bpmTimesSpeed = AccuracyMath.GetBpmTimesSpeed();
-                double conductorPitch = AccuracyMath.GetConductorPitch();
-
-                double pureBoundaryDeg = scrMisc.GetAdjustedAngleBoundaryInDeg(
-                    HitMarginGeneral.Pure,
-                    bpmTimesSpeed,
-                    conductorPitch,
-                    marginScale
-                );
-
-                double countedBoundaryDeg = scrMisc.GetAdjustedAngleBoundaryInDeg(
-                    HitMarginGeneral.Counted,
-                    bpmTimesSpeed,
-                    conductorPitch,
-                    marginScale
-                );
-
-                if (countedBoundaryDeg <= 0.0)
-                    return;
-
-                double scale = 60.0 / countedBoundaryDeg;
-                double normalizedPureBoundary = pureBoundaryDeg * scale;
-
-                if (normalizedAngle < -normalizedPureBoundary || normalizedAngle > normalizedPureBoundary)
-                {
-                    return;
-                }
-
-                const float xCompress = 0.75f;
-
-                double xPerfectMeterBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
-                    bpmTimesSpeed, conductorPitch, countedBoundaryDeg);
-
-                if (Math.Abs(normalizedAngle) <= xPerfectMeterBoundary)
-                {
-                    float finalAngle = normalizedAngle * xCompress;
-                    ApplyTickAngle(tickImage, meterShape, finalAngle);
-                }
-            }
-            catch (Exception ex)
-            {
-                UnityModManager.Logger.Log($"[MeterVisualPatch/AddHit] {ex}");
+                float finalAngle = normalizedAngle * xCompress;
+                ApplyTickAngle(tickImage, meterShape, finalAngle);
             }
         }
 

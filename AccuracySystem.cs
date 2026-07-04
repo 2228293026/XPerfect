@@ -166,25 +166,18 @@ namespace XPerfect
     {
         static void Postfix(ref HitMargin __result, float hitangle, float refangle, bool isCW, float bpmTimesSpeed, float conductorPitch, double marginScale = 1f)
         {
-            try
-            {
-                if (!Main.Enabled) return;
-                if (scrController.instance == null || scrConductor.instance == null) return;
-                if ((States)scrController.instance.stateMachine.GetState() != States.PlayerControl) return;
+            if (!Main.Enabled) return;
+            if (scrController.instance == null || scrConductor.instance == null) return;
+            if ((States)scrController.instance.stateMachine.GetState() != States.PlayerControl) return;
 
-                double bpmTimesSpeed2 = (double)bpmTimesSpeed;
-                double conductorPitch2 = (double)conductorPitch;
+            double bpmTimesSpeed2 = (double)bpmTimesSpeed;
+            double conductorPitch2 = (double)conductorPitch;
 
-                DetailedJudge detailedJudge = JudgeCalculator.GetDetailedJudge(
-                    __result, hitangle, refangle, isCW, bpmTimesSpeed2, conductorPitch2);
+            DetailedJudge detailedJudge = JudgeCalculator.GetDetailedJudge(
+                __result, hitangle, refangle, isCW, bpmTimesSpeed2, conductorPitch2);
 
-                if (detailedJudge != DetailedJudge.None)
-                    AccuracyState.RecordJudge(detailedJudge);
-            }
-            catch (Exception ex)
-            {
-                UnityModManager.Logger.Log($"[XPerfect] HitMargin error: {ex}");
-            }
+            if (detailedJudge != DetailedJudge.None)
+                AccuracyState.RecordJudge(detailedJudge);
         }
     }
 
@@ -196,33 +189,26 @@ namespace XPerfect
 
         static void Postfix(ref bool __result, HitMargin margin)
         {
-            try
+            if (!Main.Enabled || !Main.Settings.XPerfectOnly) return;
+            if (scrController.instance == null || !scrController.instance.gameworld) return;
+
+            bool shouldBlock = false;
+
+            if (margin != HitMargin.Perfect)
             {
-                if (!Main.Enabled || !Main.Settings.XPerfectOnly) return;
-                if (scrController.instance == null || !scrController.instance.gameworld) return;
-
-                bool shouldBlock = false;
-
-                if (margin != HitMargin.Perfect)
-                {
-                    shouldBlock = true;
-                }
-                else
-                {
-                    DetailedJudge judge = AccuracyState.LastJudge;
-                    if (judge == DetailedJudge.PlusPerfect || judge == DetailedJudge.MinusPerfect)
-                        shouldBlock = true;
-                }
-
-                if (shouldBlock)
-                {
-                    __result = false;
-                    ShouldFailPlayer = true;
-                }
+                shouldBlock = true;
             }
-            catch (Exception ex)
+            else
             {
-                UnityModManager.Logger.Log($"[XPerfect] IsValidHit error: {ex}");
+                DetailedJudge judge = AccuracyState.LastJudge;
+                if (judge == DetailedJudge.PlusPerfect || judge == DetailedJudge.MinusPerfect)
+                    shouldBlock = true;
+            }
+
+            if (shouldBlock)
+            {
+                __result = false;
+                ShouldFailPlayer = true;
             }
         }
     }
@@ -258,23 +244,18 @@ namespace XPerfect
     {
         static void Postfix(HitMargin hit)
         {
-            try
-            {
-                if (!Main.Enabled) return;
-                if (hit != HitMargin.Perfect) return;
-                if (scrController.instance == null || scrConductor.instance == null) return;
-                if ((States)scrController.instance.stateMachine.GetState() != States.PlayerControl) return;
+            if (!Main.Enabled) return;
+            if (hit != HitMargin.Perfect) return;
+            if (scrController.instance == null || scrConductor.instance == null) return;
+            if ((States)scrController.instance.stateMachine.GetState() != States.PlayerControl) return;
 
-                DetailedJudge detailedJudge = AccuracyState.LastJudge;
-                if (detailedJudge == DetailedJudge.None) return;
+            DetailedJudge detailedJudge = AccuracyState.LastJudge;
+            if (detailedJudge == DetailedJudge.None) return;
 
-                AccuracyState.IncrementCount(detailedJudge);
-                AccuracyState.ConsumeJudge();
-            }
-            catch (Exception ex)
-            {
-                UnityModManager.Logger.Log($"[XPerfect] AddHit error: {ex}");
-            }
+            AccuracyState.IncrementCount(detailedJudge);
+            AccuracyState.ConsumeJudge();
+
+            CounterDisplay.Refresh();
         }
     }
 
@@ -409,6 +390,7 @@ namespace XPerfect
         {
             AccuracyState.Reset();
             IsValidHitPatch.ShouldFailPlayer = false;
+            CounterDisplay.Refresh();
         }
     }
 

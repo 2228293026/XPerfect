@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using UnityModManagerNet;
 using System;
 using System.Collections;
+using System.Text;
 
 namespace XPerfect
 {
@@ -25,6 +26,8 @@ namespace XPerfect
         private static GameObject _canvasObj;
         private static TMP_Text _text;
         private static TMP_FontAsset _cachedFont;
+
+        private static readonly StringBuilder _counterBuilder = new StringBuilder(128);
 
 
         public static void Create()
@@ -162,14 +165,56 @@ namespace XPerfect
 
             string space = GetSpace();
 
-            _text.text =
-                $"{ColorText(AccuracyState.PlusPerfectCount.ToString(), PlusMinusHex)}" +
-                $"{space}" +
-                $"{ColorText(AccuracyState.XPerfectCount.ToString(), XColorHex)}" +
-                $"{space}" +
-                $"{ColorText(AccuracyState.MinusPerfectCount.ToString(), PlusMinusHex)}";
+            var sb = _counterBuilder;
+            sb.Length = 0;
+
+            sb.Append("<color=#");
+            sb.Append(PlusMinusHex);
+            sb.Append(">+");
+            AppendInt(sb, AccuracyState.PlusPerfectCount);
+            sb.Append("</color>");
+            sb.Append(space);
+            sb.Append("<color=#");
+            sb.Append(XColorHex);
+            sb.Append(">");
+            AppendInt(sb, AccuracyState.XPerfectCount);
+            sb.Append("</color>");
+            sb.Append(space);
+            sb.Append("<color=#");
+            sb.Append(PlusMinusHex);
+            sb.Append(">-");
+            AppendInt(sb, AccuracyState.MinusPerfectCount);
+            sb.Append("</color>");
+
+            _text.text = sb.ToString();
 
             ApplySettings();
+        }
+
+        private static void AppendInt(StringBuilder sb, int value)
+        {
+            if (value >= 1000)
+            {
+                sb.Append((char)('0' + (value / 1000) % 10));
+                sb.Append((char)('0' + (value / 100) % 10));
+                sb.Append((char)('0' + (value / 10) % 10));
+                sb.Append((char)('0' + value % 10));
+            }
+            else if (value >= 100)
+            {
+                sb.Append((char)('0' + (value / 100) % 10));
+                sb.Append((char)('0' + (value / 10) % 10));
+                sb.Append((char)('0' + value % 10));
+            }
+            else if (value >= 10)
+            {
+                sb.Append((char)('0' + (value / 10) % 10));
+                sb.Append((char)('0' + value % 10));
+            }
+            else
+            {
+                sb.Append((char)('0' + value));
+            }
         }
 
         private static string GetSpace()
@@ -181,11 +226,6 @@ namespace XPerfect
                 _lastSpacing = s;
             }
             return _cachedSpace;
-        }
-
-        private static string ColorText(string text, string colorHex)
-        {
-            return $"<color=#{colorHex}>{text}</color>";
         }
     }
 
@@ -231,16 +271,6 @@ namespace XPerfect
         }
     }
 
-    [HarmonyPatch(typeof(scrMarginTracker), "AddHit")]
-    public static class CounterRefreshOnHitPatch
-    {
-        static void Postfix()
-        {
-            try { CounterDisplay.Refresh(); }
-            catch (Exception ex) { UnityModManager.Logger.Log($"[XPerfect] CounterRefresh error: {ex}"); }
-        }
-    }
-
     [HarmonyPatch(typeof(scnEditor), "SwitchToEditMode")]
     public static class EditorSwitchToEditModePatch
     {
@@ -248,16 +278,6 @@ namespace XPerfect
         {
             try { CounterDisplay.Refresh(); }
             catch (Exception ex) { UnityModManager.Logger.Log($"[XPerfect] SwitchToEditMode error: {ex}"); }
-        }
-    }
-
-    [HarmonyPatch(typeof(scrController), "Start_Rewind")]
-    public static class CounterResetOnStartPatch
-    {
-        static void Postfix()
-        {
-            try { CounterDisplay.Refresh(); }
-            catch (Exception ex) { UnityModManager.Logger.Log($"[XPerfect] CounterReset error: {ex}"); }
         }
     }
 }
