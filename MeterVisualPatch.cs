@@ -293,6 +293,7 @@ namespace XPerfect
         {
             byte[] bytes = File.ReadAllBytes(filePath);
             Texture2D texture = new Texture2D(2, 2, TextureFormat.ARGB32, false);
+            bool adopted = false;
             try
             {
                 var imageConversionType = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule");
@@ -323,12 +324,13 @@ namespace XPerfect
                 Rect rect = new Rect(0f, 0f, texture.width, texture.height);
                 Vector2 pivot = new Vector2(0.5f, 0.5f);
 
+                adopted = true;
                 return Sprite.Create(texture, rect, pivot, 100f);
             }
-            catch
+            finally
             {
-                if (texture != null) UnityEngine.Object.Destroy(texture);
-                throw;
+                if (texture != null && !adopted)
+                    UnityEngine.Object.Destroy(texture);
             }
         }
         public static void RefreshAllMeters()
