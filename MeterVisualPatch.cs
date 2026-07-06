@@ -146,7 +146,7 @@ namespace XPerfect
             const float xCompress = 0.75f;
 
             double xPerfectMeterBoundary = AccuracyMath.GetMeterXPerfectBoundaryDeg(
-                bpmTimesSpeed, conductorPitch, countedBoundaryDeg);
+                bpmTimesSpeed, conductorPitch, countedBoundaryDeg, marginScale);
 
             if (Math.Abs(normalizedAngle) <= xPerfectMeterBoundary)
             {

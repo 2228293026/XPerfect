@@ -188,12 +188,12 @@ namespace XPerfect
             return isCW ? delta : -delta;
         }
 
-        public static double GetActualXPerfectBoundaryDeg(double bpmTimesSpeed, double conductorPitch)
+        public static double GetActualXPerfectBoundaryDeg(double bpmTimesSpeed, double conductorPitch, float marginScale = 1f)
         {
             double xPerfectMinTimeDeg =
                 scrMisc.TimeToAngleInRad(XPerfectMinTimeSec, bpmTimesSpeed, conductorPitch, false) * Mathf.Rad2Deg;
 
-            return Math.Max(XPerfectBaseDeg, xPerfectMinTimeDeg);
+            return Math.Max(XPerfectBaseDeg * marginScale, xPerfectMinTimeDeg);
         }
 
         public static double GetMeterScale(double countedBoundaryDeg)
@@ -216,15 +216,16 @@ namespace XPerfect
                 marginScale
             );
 
-            return GetMeterXPerfectBoundaryDeg(bpmTimesSpeed, conductorPitch, countedBoundaryDeg);
+            return GetMeterXPerfectBoundaryDeg(bpmTimesSpeed, conductorPitch, countedBoundaryDeg, marginScale);
         }
 
         public static double GetMeterXPerfectBoundaryDeg(
             double bpmTimesSpeed,
             double conductorPitch,
-            double countedBoundaryDeg)
+            double countedBoundaryDeg,
+            float marginScale = 1f)
         {
-            double actualXPerfectBoundaryDeg = GetActualXPerfectBoundaryDeg(bpmTimesSpeed, conductorPitch);
+            double actualXPerfectBoundaryDeg = GetActualXPerfectBoundaryDeg(bpmTimesSpeed, conductorPitch, marginScale);
             double meterScale = GetMeterScale(countedBoundaryDeg);
 
             return actualXPerfectBoundaryDeg * meterScale;
@@ -239,7 +240,8 @@ namespace XPerfect
             float refAngle,
             bool isCW,
             double bpmTimesSpeed,
-            double conductorPitch)
+            double conductorPitch,
+            float marginScale = 1f)
         {
             if (RDC.auto)
                 return DetailedJudge.XPerfect;
@@ -251,7 +253,7 @@ namespace XPerfect
             float absDeltaDeg = Mathf.Abs(signedDeltaDeg);
 
             double xPerfectBoundaryDeg =
-                AccuracyMath.GetActualXPerfectBoundaryDeg(bpmTimesSpeed, conductorPitch);
+                AccuracyMath.GetActualXPerfectBoundaryDeg(bpmTimesSpeed, conductorPitch, marginScale);
 
             if (absDeltaDeg <= xPerfectBoundaryDeg)
                 return DetailedJudge.XPerfect;
@@ -277,7 +279,7 @@ namespace XPerfect
             double conductorPitch2 = (double)conductorPitch;
 
             DetailedJudge detailedJudge = JudgeCalculator.GetDetailedJudge(
-                __result, hitangle, refangle, isCW, bpmTimesSpeed2, conductorPitch2);
+                __result, hitangle, refangle, isCW, bpmTimesSpeed2, conductorPitch2, (float)marginScale);
 
             if (detailedJudge != DetailedJudge.None)
                 AccuracyState.RecordJudge(AccuracyState._currentPlayerId, detailedJudge);
