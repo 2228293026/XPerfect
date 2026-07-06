@@ -613,7 +613,7 @@ namespace XPerfect
             string text = __instance.textComponent.text;
             if (string.IsNullOrEmpty(text)) return;
 
-            string detail = $" <color=#4DCCFF>[+{plus}/{x}/-{minus}]</color>";
+            string detail = $" <color=#60FF4E>[+{plus}/</color><color=#4DCCFF>{x}</color><color=#60FF4E>/-{minus}]</color>";
 
             const string separator = "     ";
             int firstNewline = text.IndexOf('\n');
