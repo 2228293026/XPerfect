@@ -26,6 +26,7 @@ namespace XPerfect
             modEntry.OnToggle = OnToggle;
             modEntry.OnGUI = OnGUI;
             modEntry.OnSaveGUI = OnSaveGUI;
+            modEntry.OnUnload = OnUnload;
 
             Enabled = true;
             AccuracyState.Reset();
@@ -53,6 +54,26 @@ namespace XPerfect
             AccuracyState.Reset();
             MeterVisualPatch.RefreshAllMeters();
             CounterDisplay.Refresh();
+            return true;
+        }
+
+        private static bool OnUnload(UnityModManager.ModEntry modEntry)
+        {
+            Enabled = false;
+
+            MeterVisualPatch.RefreshAllMeters();
+
+            CounterDisplay.Destroy();
+
+            if (_runnerGo != null)
+            {
+                UnityEngine.Object.Destroy(_runnerGo);
+                _runnerGo = null;
+            }
+
+            _harmony.UnpatchAll(modEntry.Info.Id);
+            _harmony = null;
+
             return true;
         }
 
