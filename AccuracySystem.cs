@@ -375,7 +375,7 @@ namespace XPerfect
         static void Postfix(scrMarginTracker __instance, HitMargin hit)
         {
             if (!Main.Enabled) return;
-            if (hit != HitMargin.Perfect) return;
+            if (hit != HitMargin.Perfect && hit != HitMargin.Auto) return;
             if (scrController.instance == null || scrConductor.instance == null) return;
             if ((States)scrController.instance.stateMachine.GetState() != States.PlayerControl) return;
 
